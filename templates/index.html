@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inbox Brief</title>
+    <style>
+      :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; background: #f6f7fb; color: #172033; }
+      body { margin: 0; display: grid; min-height: 100vh; place-items: center; }
+      main { width: min(760px, calc(100% - 40px)); }
+      h1 { font-size: clamp(2rem, 6vw, 3.4rem); margin: 0 0 .4rem; }
+      .lead { color: #566176; margin: 0 0 2rem; }
+      .card { background: white; border: 1px solid #e5e8f0; border-radius: 18px; padding: 24px; box-shadow: 0 10px 30px #1720330a; }
+      textarea, input, button { font: inherit; }
+      textarea { width: 100%; box-sizing: border-box; min-height: 100px; padding: 12px; border: 1px solid #ccd3e0; border-radius: 10px; resize: vertical; }
+      .row { display: flex; gap: 12px; margin-top: 14px; align-items: center; flex-wrap: wrap; }
+      input { width: 70px; padding: 9px; border: 1px solid #ccd3e0; border-radius: 8px; }
+      button, .button { border: 0; border-radius: 9px; background: #315ce8; color: white; padding: 10px 15px; cursor: pointer; text-decoration: none; }
+      .muted { color: #667085; font-size: .9rem; }
+      pre { white-space: pre-wrap; font: inherit; line-height: 1.55; margin: 20px 0 0; padding: 18px; background: #f5f7fb; border-radius: 12px; min-height: 55px; }
+      details { margin-top: 16px; } details pre { font: .85rem ui-monospace, monospace; min-height: 0; margin-top: 8px; }
+      form { display: inline; } form button { background: transparent; color: #566176; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Inbox Brief</h1>
+      <p class="lead">Ask for a concise read of your most recent Gmail messages.</p>
+      {% if not connected %}
+        <section class="card"><p>Connect your Gmail account to begin. The app requests read-only access and stores the OAuth token only on this computer.</p><a class="button" href="/connect">Connect Gmail</a></section>
+      {% else %}
+        <section class="card">
+          <textarea id="question" placeholder="Example: What needs my attention today?"></textarea>
+          <div class="row"><label>Emails <input id="limit" type="number" value="12" min="1" max="25"></label><button id="ask">Create summary</button><span class="muted" id="status"></span></div>
+          <pre id="answer">Ask a question or leave it blank for an inbox brief.</pre>
+          <details><summary>Show backend and LLM API calls</summary><pre id="trace">No call made yet.</pre></details>
+          <form action="/disconnect" method="post"><button>Disconnect Gmail</button></form>
+        </section>
+        <script>
+          document.querySelector('#ask').addEventListener('click', async () => {
+            const status = document.querySelector('#status'), answer = document.querySelector('#answer');
+            status.textContent = 'Reading inbox…'; answer.textContent = '';
+            const response = await fetch('/api/summary', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: question.value, limit: limit.value}) });
+            const data = await response.json(); status.textContent = '';
+            answer.textContent = data.error || data.summary;
+            document.querySelector('#trace').textContent = data.trace ? JSON.stringify(data.trace, null, 2) : 'No LLM call was completed.';
+          });
+        </script>
+      {% endif %}
+    </main>
+  </body>
+</html>
